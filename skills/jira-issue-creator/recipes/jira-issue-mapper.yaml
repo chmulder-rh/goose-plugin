@@ -1,0 +1,151 @@
+version: "1.0.0"
+title: "Jira Issue Field Mapper"
+description: "Validates human-friendly RHCLOUD Jira issue fields and maps them to the raw values the Jira API expects. Returns structured JSON. Performs no API calls."
+
+parameters:
+  - key: summary
+    input_type: string
+    requirement: required
+    description: "Short title for the Jira issue (e.g. 'Fix CVE in chrome'), without any prefix applied"
+
+  - key: prefix
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Summary prefix e.g. 'scalprum' → [scalprum] Fix bug. Empty string for none."
+
+  - key: team
+    input_type: select
+    requirement: required
+    description: "Which team owns this ticket?"
+    options:
+      - Console - Framework
+      - Console - UI
+
+  - key: issue_type
+    input_type: select
+    requirement: required
+    description: "What type of issue is this?"
+    options:
+      - Story
+      - Bug
+      - Spike
+      - Epic
+      - Risk
+      - Weakness
+      - Vulnerability
+
+  - key: activity_type
+    input_type: select
+    requirement: required
+    description: "What kind of work does this represent?"
+    options:
+      - Quality / Stability / Reliability
+      - Security & Compliance
+      - Incidents & Support
+      - Future Sustainability
+      - Associate Wellness & Development
+      - Product / Portfolio Work
+
+  - key: assignee_account_id
+    input_type: string
+    requirement: required
+    description: "Jira account ID of the assignee, or 'unassigned'. Must already be resolved by the caller."
+
+instructions: |
+  You are a pure field-validation and mapping function. You have no tools and make no API calls.
+
+  ## Validation
+
+  Check every field against these allowed values:
+  - team:          "Console - Framework" | "Console - UI"
+  - issue_type:    "Story" | "Bug" | "Spike" | "Epic" | "Risk" | "Weakness" | "Vulnerability"
+  - activity_type: "Quality / Stability / Reliability" | "Security & Compliance" |
+                    "Incidents & Support" | "Future Sustainability" |
+                    "Associate Wellness & Development" | "Product / Portfolio Work"
+  - summary:       must not be empty after trimming whitespace
+  - assignee_account_id: any non-empty string, or the literal "unassigned"
+
+  If ANY field is invalid, set "valid" to false, list every problem found in "errors"
+  (one string per problem), and leave the mapped fields as empty strings / empty objects.
+  Do NOT guess or coerce an invalid value into a valid one.
+
+  If ALL fields are valid, set "valid" to true, "errors" to an empty list, and compute:
+
+  ### mapped_summary
+  - If prefix is non-empty: "[{{ prefix }}] {{ summary }}"
+  - If prefix is empty: "{{ summary }}"
+
+  ### team_field_value (maps to customfield_10001, a plain UUID string)
+  - "Console - Framework" → "ae9633ff-0523-49b5-b99b-16342fc5a327"
+  - "Console - UI"        → "cc1c0d99-0567-45c8-bf77-8e6149d7ed83"
+
+  ### activity_type_field_value (maps to customfield_10464)
+  Always the object: {"value": "<activity_type as given>"}
+
+  ### security_field_value (maps to the "security" additional field)
+  - If activity_type is "Security & Compliance": {"name": "Red Hat Employee"}
+  - Otherwise: null
+
+  ### assignee_account_id passthrough
+  - Pass through "{{ assignee_account_id }}" unchanged (still "unassigned" if that was given).
+
+  Do not ask any questions. Do not call any tools. Compute the result and report it
+  only via the structured response schema.
+
+prompt: |
+  Validate and map these RHCLOUD Jira issue fields:
+  - summary:              {{ summary }}
+  - prefix:               {{ prefix }}
+  - team:                 {{ team }}
+  - issue_type:           {{ issue_type }}
+  - activity_type:        {{ activity_type }}
+  - assignee_account_id:  {{ assignee_account_id }}
+
+extensions: []
+
+response:
+  json_schema:
+    type: object
+    properties:
+      valid:
+        type: boolean
+        description: "True if every field passed validation"
+      errors:
+        type: array
+        items:
+          type: string
+        description: "List of validation error messages; empty if valid is true"
+      mapped_summary:
+        type: string
+        description: "Final summary with prefix applied, empty string if invalid"
+      issue_type:
+        type: string
+        description: "Passed-through issue type name, empty string if invalid"
+      team_field_value:
+        type: string
+        description: "UUID string for customfield_10001, empty string if invalid"
+      activity_type_field_value:
+        type: object
+        properties:
+          value:
+            type: string
+        description: "Object for customfield_10464, empty object if invalid"
+      security_field_value:
+        type: ["object", "null"]
+        properties:
+          name:
+            type: string
+        description: "Object for the security field, or null if not applicable/invalid"
+      assignee_account_id:
+        type: string
+        description: "Passed-through assignee account ID, or 'unassigned'"
+    required:
+      - valid
+      - errors
+      - mapped_summary
+      - issue_type
+      - team_field_value
+      - activity_type_field_value
+      - security_field_value
+      - assignee_account_id

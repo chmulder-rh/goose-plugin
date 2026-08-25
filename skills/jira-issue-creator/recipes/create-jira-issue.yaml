@@ -1,0 +1,131 @@
+version: "1.0.0"
+title: "Jira Issue Creator"
+description: "Creates a RHCLOUD Jira issue from already-mapped, already-validated API field values. Performs no validation or mapping of its own. Reports the result as structured JSON."
+
+parameters:
+  - key: mapped_summary
+    input_type: string
+    requirement: required
+    description: "Final summary text, already including any prefix"
+
+  - key: issue_type
+    input_type: string
+    requirement: required
+    description: "Exact Jira issue type name, e.g. 'Story', 'Bug'"
+
+  - key: team_field_value
+    input_type: string
+    requirement: required
+    description: "UUID string for customfield_10001"
+
+  - key: activity_type_value
+    input_type: string
+    requirement: required
+    description: "The activity_type text value to place in customfield_10464's 'value' field"
+
+  - key: security_field_name
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Value for the security field's 'name' property, or empty string if not applicable"
+
+  - key: assignee_account_id
+    input_type: string
+    requirement: required
+    description: "Jira account ID of the assignee, or the literal 'unassigned'"
+
+  - key: atlassian_instance
+    input_type: string
+    requirement: required
+    description: "Atlassian site hostname to create the issue against, from the ATLASSIAN_INSTANCE env var. Not to be confused with ATLASSIAN_CLOUD_ID, which is a separate UUID used only for MCP server auth."
+
+instructions: |
+  You are the execution layer for RHCLOUD Jira ticket creation. You perform exactly
+  ONE action: call the createJiraIssue tool with the field values you were given,
+  verbatim. Do not validate, re-map, enrich, or second-guess any of the input values —
+  that has already been done by an earlier stage in the pipeline.
+
+  ⚠️ Do NOT use execute_typescript. Call createJiraIssue directly as an MCP tool.
+
+  ## Build the additional_fields object
+
+  - customfield_10001: "{{ team_field_value }}"
+  - customfield_10464: {"value": "{{ activity_type_value }}"}
+  {% if security_field_name %}
+  - security: {"name": "{{ security_field_name }}"}
+  {% endif %}
+
+  ## Call createJiraIssue
+
+  - cloudId:              "{{ atlassian_instance }}"
+  - projectKey:           "RHCLOUD"
+  - issueTypeName:        "{{ issue_type }}"
+  - summary:              "{{ mapped_summary }}"
+  {% if assignee_account_id != "unassigned" %}
+  - assignee_account_id:  "{{ assignee_account_id }}"
+  {% endif %}
+  - additional_fields:    the object built above
+
+  ## Report the result
+
+  Report the outcome only via the structured response schema:
+  - If the tool call succeeds, set success=true, issue_key to the returned ticket key
+    (e.g. "RHCLOUD-1234"), issue_url to its browse URL, and error to an empty string.
+  - If the tool call fails, set success=false, issue_key and issue_url to empty strings,
+    and error to a concise description of what the API returned.
+
+  Do not ask any questions. Do not enrich the description. Make exactly one tool call.
+
+prompt: |
+  Create a RHCLOUD Jira ticket with these already-validated, already-mapped values:
+  - Summary:               {{ mapped_summary }}
+  - Issue Type:            {{ issue_type }}
+  - Team field value:      {{ team_field_value }}
+  - Activity type value:   {{ activity_type_value }}
+  - Security field name:   {{ security_field_name }}
+  - Assignee account ID:   {{ assignee_account_id }}
+  - Atlassian instance:    {{ atlassian_instance }}
+
+extensions:
+  - type: streamable_http
+    name: atlassian-rovo
+    uri: https://mcp.atlassian.com/v1/mcp/authv2
+    timeout: 300
+    headers:
+      Authorization: $ATLASSIAN_AUTH
+    env_keys:
+      - ATLASSIAN_AUTH
+    # ATLASSIAN_CLOUD_ID / ATLASSIAN_INSTANCE identify the Atlassian Cloud
+    # tenant this recipe talks to. They are not resolvable via env_keys
+    # (which checks OS env vars / the secrets keyring, not this recipe file
+    # or config.yaml's own extensions block) — envs: values go through the
+    # same $VAR substitution as headers: above, so they must be exported as
+    # real OS environment variables by whoever installs/runs this recipe.
+    # Deliberately not hardcoded to any specific organization's tenant, so
+    # this plugin stays portable/reusable outside of its original author's
+    # Atlassian instance.
+    envs:
+      ATLASSIAN_CLOUD_ID: $ATLASSIAN_CLOUD_ID
+      ATLASSIAN_INSTANCE: $ATLASSIAN_INSTANCE
+
+response:
+  json_schema:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "True if the ticket was created successfully"
+      issue_key:
+        type: string
+        description: "The created ticket's key, e.g. RHCLOUD-1234; empty string on failure"
+      issue_url:
+        type: string
+        description: "The browse URL for the created ticket; empty string on failure"
+      error:
+        type: string
+        description: "Description of the failure; empty string on success"
+    required:
+      - success
+      - issue_key
+      - issue_url
+      - error
