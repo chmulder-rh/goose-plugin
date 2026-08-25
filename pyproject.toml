@@ -1,0 +1,16 @@
+[project]
+name = "goose-plugin-tests"
+version = "0.1.0"
+description = "Test suite for the chmulder-goose-tools plugin's Python scripts"
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

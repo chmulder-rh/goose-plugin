@@ -40,6 +40,11 @@ goose plugin install --auto-update <this-repo-url>
 chmulder-goose-tools/
 ├── plugin.json
 ├── README.md
+├── pyproject.toml
+├── tests/
+│   ├── conftest.py
+│   ├── test_get_recipe_questions.py
+│   └── test_create_jira_issue_pipeline.py
 └── skills/
     └── jira-issue-creator/
         ├── SKILL.md
@@ -49,6 +54,16 @@ chmulder-goose-tools/
         └── scripts/
             ├── get_recipe_questions.py
             └── create_jira_issue_pipeline.py
+```
+
+## Running the tests
+
+The Python scripts under `skills/*/scripts/` have a `pytest` suite in `tests/`,
+managed with [uv](https://docs.astral.sh/uv/). It mocks all `subprocess`/`goose run`
+calls, so it runs fast and needs no Atlassian credentials or network access.
+
+```bash
+uv run pytest
 ```
 
 ## Requirements

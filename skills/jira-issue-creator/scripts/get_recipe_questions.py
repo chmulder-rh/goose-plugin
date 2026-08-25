@@ -45,6 +45,28 @@ except ImportError:
     sys.exit(1)
 
 
+def extract_questions(data: dict) -> list:
+    """Pull the ordered list of user-facing question dicts out of a parsed recipe.
+
+    `data` is the dict produced by `yaml.safe_load()` on a recipe file. Returns
+    a list of {key, input_type, requirement, description, options, default}
+    dicts, one per entry in the recipe's `parameters:` block, preserving order.
+    Recipes with no `parameters` key (or an empty one) yield an empty list.
+    """
+    params = (data or {}).get("parameters") or []
+    out = []
+    for p in params:
+        out.append({
+            "key": p.get("key"),
+            "input_type": p.get("input_type"),
+            "requirement": p.get("requirement"),
+            "description": p.get("description", ""),
+            "options": p.get("options"),
+            "default": p.get("default"),
+        })
+    return out
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(json.dumps({"error": "Usage: get_recipe_questions.py <path-to-recipe.yaml>"}))
@@ -58,19 +80,7 @@ def main() -> int:
         print(json.dumps({"error": f"Could not read/parse {recipe_path}: {e}"}))
         return 1
 
-    params = data.get("parameters") or []
-    out = []
-    for p in params:
-        out.append({
-            "key": p.get("key"),
-            "input_type": p.get("input_type"),
-            "requirement": p.get("requirement"),
-            "description": p.get("description", ""),
-            "options": p.get("options"),
-            "default": p.get("default"),
-        })
-
-    print(json.dumps(out, indent=2))
+    print(json.dumps(extract_questions(data), indent=2))
     return 0
 
 
