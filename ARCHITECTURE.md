@@ -47,12 +47,12 @@ This separation ensures:
 ### Layer 3: Recipes (MCP Tool Calls Only)
 
 **`create-jira-issue.yaml`**
-- Calls `createJiraIssue` MCP (extensions: [atlassian-rovo])
+- Calls `createJiraIssue` MCP (extensions: [rovo])
 - Receives pre-validated, pre-mapped field values from Layer 2
 - Returns JSON: `{success, issue_key, issue_url, error}`
 
 **`update-jira-issue-description.yaml`**
-- Calls `editJiraIssue` MCP (extensions: [atlassian-rovo])
+- Calls `editJiraIssue` MCP (extensions: [rovo])
 - Updates issue description after creation
 - Returns JSON: `{success, error}`
 

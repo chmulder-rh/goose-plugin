@@ -9,7 +9,7 @@ parameters:
     description: "Email, username, or other user identifier to search for (e.g., chmulder@redhat.com)"
 
 prompt: |
-  lookupJiraAccountId(
+  rovo__lookupJiraAccountId(
     cloudId=$(printenv ATLASSIAN_INSTANCE),
     searchString={{ search_string }}
   )
@@ -17,7 +17,9 @@ prompt: |
 
 extensions:
   - type: streamable_http
-    name: atlassian-rovo
+    name: rovo
+    display_name: "Atlassian Rovo MCP Server"
+    description: "MCP server for Atlassian Jira and Confluence integration"
     uri: https://mcp.atlassian.com/v1/mcp/authv2
     timeout: 300
     headers:
