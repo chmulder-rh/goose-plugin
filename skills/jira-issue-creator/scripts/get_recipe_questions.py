@@ -28,7 +28,7 @@ in the recipe, e.g.:
     "key": "prefix",
     "input_type": "string",
     "requirement": "optional",
-    "description": "Summary prefix e.g. 'scalprum' -> [scalprum] Fix bug. Empty string for none.",
+    description: "Title prefix e.g. '[prefix] Title goes here."
     "options": null,
     "default": ""
   }

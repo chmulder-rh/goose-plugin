@@ -6,13 +6,13 @@ parameters:
   - key: summary
     input_type: string
     requirement: required
-    description: "Short title for the Jira issue (e.g. 'Fix CVE in chrome'), without any prefix applied"
+    description: "Short title for the Jira issue, without any prefix applied"
 
   - key: prefix
     input_type: string
     requirement: optional
     default: ""
-    description: "Summary prefix e.g. 'scalprum' → [scalprum] Fix bug. Empty string for none."
+    description: "Title prefix e.g. '[prefix] Title goes here."
 
   - key: team
     input_type: select

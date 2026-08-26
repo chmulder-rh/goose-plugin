@@ -91,8 +91,9 @@ class TestRunRecipe:
         assert cmd[0:4] == ["goose", "run", "--recipe", str(pipeline_module.MAPPER_RECIPE)]
         assert "-q" in cmd
         assert "--params" in cmd
-        assert "summary=hello world" in cmd
-        assert "team=Console - UI" in cmd
+        # Parameters are now JSON-encoded to handle special characters
+        assert 'summary="hello world"' in cmd
+        assert 'team="Console - UI"' in cmd
         assert captured["env"]["GOOSE_MODE"] == "auto"
 
 

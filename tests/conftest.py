@@ -34,7 +34,7 @@ def get_recipe_questions_module():
 
 @pytest.fixture()
 def pipeline_module():
-    return load_module("create_jira_issue_pipeline", SCRIPTS_DIR / "create_jira_issue_pipeline.py")
+    return load_module("run_recipe", SCRIPTS_DIR / "run_recipe.py")
 
 
 @pytest.fixture()

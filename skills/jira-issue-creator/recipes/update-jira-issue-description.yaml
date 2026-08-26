@@ -1,0 +1,50 @@
+version: "1.0.0"
+title: "Jira Issue Description Updater"
+description: "Updates a RHCLOUD Jira issue description via editJiraIssue MCP. Uses ATLASSIAN_INSTANCE environment variable for cloudId."
+
+parameters:
+  - key: issue_key
+    input_type: string
+    requirement: required
+    description: "Jira issue key (e.g., RHCLOUD-1234)"
+
+  - key: description
+    input_type: string
+    requirement: required
+    description: "Markdown description text"
+
+prompt: |
+  editJiraIssue(
+    cloudId=$(printenv ATLASSIAN_INSTANCE),
+    issueIdOrKey={{ issue_key }},
+    contentFormat="markdown",
+    fields={"description": {{ description }}}
+  )
+  // Report result via response.json_schema: {success, error}
+
+extensions:
+  - type: streamable_http
+    name: atlassian-rovo
+    uri: https://mcp.atlassian.com/v1/mcp/authv2
+    timeout: 300
+    headers:
+      Authorization: $ATLASSIAN_AUTH
+    env_keys:
+      - ATLASSIAN_AUTH
+    envs:
+      ATLASSIAN_CLOUD_ID: $ATLASSIAN_CLOUD_ID
+      ATLASSIAN_INSTANCE: $ATLASSIAN_INSTANCE
+
+response:
+  json_schema:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "True if the description was updated successfully"
+      error:
+        type: string
+        description: "Description of the failure; empty string on success"
+    required:
+      - success
+      - error

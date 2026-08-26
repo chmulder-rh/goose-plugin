@@ -1,0 +1,51 @@
+version: "1.0.0"
+title: "Jira Assignee Resolver"
+description: "Resolves a user identifier (email, username, etc.) to a Jira account ID via lookupJiraAccountId MCP. Uses ATLASSIAN_INSTANCE environment variable for cloudId."
+
+parameters:
+  - key: search_string
+    input_type: string
+    requirement: required
+    description: "Email, username, or other user identifier to search for (e.g., chmulder@redhat.com)"
+
+prompt: |
+  lookupJiraAccountId(
+    cloudId=$(printenv ATLASSIAN_INSTANCE),
+    searchString={{ search_string }}
+  )
+  // Report result via response.json_schema: {success, account_id, display_name, error}
+
+extensions:
+  - type: streamable_http
+    name: atlassian-rovo
+    uri: https://mcp.atlassian.com/v1/mcp/authv2
+    timeout: 300
+    headers:
+      Authorization: $ATLASSIAN_AUTH
+    env_keys:
+      - ATLASSIAN_AUTH
+    envs:
+      ATLASSIAN_CLOUD_ID: $ATLASSIAN_CLOUD_ID
+      ATLASSIAN_INSTANCE: $ATLASSIAN_INSTANCE
+
+response:
+  json_schema:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "True if the user was found successfully"
+      account_id:
+        type: string
+        description: "The Jira account ID (e.g., 712020:c6b31fa1-...); empty string on failure"
+      display_name:
+        type: string
+        description: "The user's display name from Jira; empty string on failure"
+      error:
+        type: string
+        description: "Description of the failure; empty string on success"
+    required:
+      - success
+      - account_id
+      - display_name
+      - error
