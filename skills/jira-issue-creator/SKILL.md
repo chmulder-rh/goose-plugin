@@ -176,7 +176,7 @@ Returns:
 
 ## 7. Enrich Description
 
-Generate a comprehensive description based on the summary and issue type:
+Generate a comprehensive markdown description based on the summary and issue type:
 
 - **Background:** Technical context and motivation
 - **Scope:** Affected files, components, systems

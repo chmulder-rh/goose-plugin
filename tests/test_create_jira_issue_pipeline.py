@@ -274,7 +274,7 @@ class TestMainPipelineFlow:
         assert payload["stage"] == "creation_failed"
         assert payload["error"] == "Jira API rejected the request"
 
-    def test_atlassian_instance_passed_to_creator_recipe(self, pipeline_module, monkeypatch):
+    def test_atlassian_cloud_id_passed_to_creator_recipe(self, pipeline_module, monkeypatch):
         for k, v in ALL_ENV_VARS.items():
             monkeypatch.setenv(k, v)
         monkeypatch.setattr(sys, "argv", self._argv())
@@ -302,7 +302,7 @@ class TestMainPipelineFlow:
             pipeline_module.main()
 
         creator_cmd = captured_cmds[1]
-        assert f"atlassian_instance={ALL_ENV_VARS['ATLASSIAN_INSTANCE']}" in creator_cmd
+        assert f"atlassian_cloud_id={ALL_ENV_VARS['ATLASSIAN_CLOUD_ID']}" in creator_cmd
 
 
 class TestCliSmoke:

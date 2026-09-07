@@ -62,7 +62,7 @@ This is a test ticket created to verify the Jira issue creator workflow and inte
         params = {
             "issue_key": "RHCLOUD-50694",
             "description": description,
-            "atlassian_instance": "redhat.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         # Track what gets passed to subprocess
@@ -126,7 +126,7 @@ This is a test ticket created to verify the Jira issue creator workflow and inte
         """
         # Simulate what the recipe receives after goose decodes parameters
         params = {
-            "atlassian_instance": "redhat.atlassian.net",
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432",
             "issue_key": "RHCLOUD-50694",
             "description": '## Scope: Important\nMore: content\nWith "quotes"'
         }
@@ -142,12 +142,12 @@ This is a test ticket created to verify the Jira issue creator workflow and inte
         # The template expects the parameters as variable references
         
         # The rendered prompt is what goose will execute:
-        # {{ atlassian_instance }} → "redhat.atlassian.net" (JSON-encoded)
+        # {{ atlassian_cloud_id }} → cloud ID (JSON-encoded)
         # {{ issue_key }} → "RHCLOUD-50694" (JSON-encoded)
         # {{ description }} → "## Scope: Important\nMore: content\n..." (JSON-encoded)
         
         rendered_prompt = f'''editJiraIssue(
-    cloudId={encoded_params["atlassian_instance"]},
+    cloudId={encoded_params["atlassian_cloud_id"]},
     issueIdOrKey={encoded_params["issue_key"]},
     contentFormat="markdown",
     fields={{"description": {encoded_params["description"]}}}

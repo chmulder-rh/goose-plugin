@@ -50,7 +50,7 @@ class TestParameterFlowWithMultilineDescription:
             "activity_type_field_value": json.dumps(mapped_fields["activity_type_field_value"]),  # Already JSON
             "security_field_value": json.dumps(mapped_fields["security_field_value"]) if mapped_fields["security_field_value"] else "",
             "assignee_account_id": mapped_fields["assignee_account_id"],
-            "atlassian_instance": "redhat.atlassian.net",
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432",
         }
         
         captured = {}
@@ -93,7 +93,7 @@ This is a test ticket.
         params = {
             "issue_key": "RHCLOUD-50694",
             "description": description,
-            "atlassian_instance": "redhat.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         captured = {}
@@ -134,7 +134,7 @@ This is a test ticket.
         params = {
             "issue_key": "RHCLOUD-123",
             "description": "## Test\nWith newlines\nAnd special: chars",
-            "atlassian_instance": "example.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         captured = {}
@@ -167,9 +167,9 @@ This is a test ticket.
         
         assert "issue_key" in found_params, "issue_key not found in params"
         assert "description" in found_params, "description not found in params"
-        assert "atlassian_instance" in found_params, "atlassian_instance not found in params"
+        assert "atlassian_cloud_id" in found_params, "atlassian_cloud_id not found in params"
         
         # Verify they're JSON-encoded
         assert json.loads(found_params["issue_key"]) == "RHCLOUD-123"
         assert json.loads(found_params["description"]) == "## Test\nWith newlines\nAnd special: chars"
-        assert json.loads(found_params["atlassian_instance"]) == "example.atlassian.net"
+        assert json.loads(found_params["atlassian_cloud_id"]) == "2b9e35e3-6bd3-4cec-b838-f4249ee02432"

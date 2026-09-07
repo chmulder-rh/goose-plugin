@@ -1,6 +1,6 @@
 version: "1.0.0"
 title: "Jira Issue Description Updater"
-description: "Updates a RHCLOUD Jira issue description via editJiraIssue MCP. Uses ATLASSIAN_INSTANCE environment variable for cloudId."
+description: "Updates a RHCLOUD Jira issue description via editJiraIssue MCP. Uses ATLASSIAN_CLOUD_ID for cloudId."
 
 parameters:
   - key: issue_key
@@ -13,9 +13,14 @@ parameters:
     requirement: required
     description: "Markdown description text"
 
+  - key: atlassian_cloud_id
+    input_type: string
+    requirement: required
+    description: "Atlassian Cloud site ID (UUID)"
+
 prompt: |
   rovo__editJiraIssue(
-    cloudId=$(printenv ATLASSIAN_INSTANCE),
+    cloudId={{ atlassian_cloud_id }},
     issueIdOrKey={{ issue_key }},
     contentFormat="markdown",
     fields={"description": {{ description }}}
@@ -33,9 +38,6 @@ extensions:
       Authorization: $ATLASSIAN_AUTH
     env_keys:
       - ATLASSIAN_AUTH
-    envs:
-      ATLASSIAN_CLOUD_ID: $ATLASSIAN_CLOUD_ID
-      ATLASSIAN_INSTANCE: $ATLASSIAN_INSTANCE
 
 response:
   json_schema:

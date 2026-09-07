@@ -28,7 +28,7 @@ class TestJsonEncodingInRunRecipe:
         params = {
             "issue_key": "RHCLOUD-50694",
             "description": "## Background\nThis is a test.\n\n## Scope:\n- Item 1",
-            "atlassian_instance": "redhat.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         captured = {}
@@ -68,7 +68,7 @@ class TestJsonEncodingInRunRecipe:
         params = {
             "issue_key": "RHCLOUD-123",
             "description": "Scope: This has colons\nActivity: Important",
-            "atlassian_instance": "example.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         captured = {}
@@ -101,7 +101,7 @@ class TestJsonEncodingInRunRecipe:
         params = {
             "issue_key": "RHCLOUD-456",
             "description": 'Text with "quotes" inside',
-            "atlassian_instance": "example.atlassian.net"
+            "atlassian_cloud_id": "2b9e35e3-6bd3-4cec-b838-f4249ee02432"
         }
         
         captured = {}

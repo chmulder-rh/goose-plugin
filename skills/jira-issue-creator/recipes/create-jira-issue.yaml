@@ -1,6 +1,6 @@
 version: "1.0.0"
 title: "Jira Issue Creator"
-description: "Creates a RHCLOUD Jira issue via createJiraIssue MCP. Receives pre-validated, pre-mapped field values. Uses ATLASSIAN_INSTANCE environment variable for cloudId."
+description: "Creates a RHCLOUD Jira issue via createJiraIssue MCP. Receives pre-validated, pre-mapped field values. Uses ATLASSIAN_CLOUD_ID for cloudId."
 
 parameters:
   - key: mapped_summary
@@ -34,9 +34,14 @@ parameters:
     requirement: required
     description: "Jira account ID or 'unassigned'"
 
+  - key: atlassian_cloud_id
+    input_type: string
+    requirement: required
+    description: "Atlassian Cloud site ID (UUID)"
+
 prompt: |
   rovo__createJiraIssue(
-    cloudId=$(printenv ATLASSIAN_INSTANCE),
+    cloudId={{ atlassian_cloud_id }},
     projectKey="RHCLOUD",
     issueTypeName={{ issue_type }},
     summary={{ mapped_summary }},
@@ -62,9 +67,6 @@ extensions:
       Authorization: $ATLASSIAN_AUTH
     env_keys:
       - ATLASSIAN_AUTH
-    envs:
-      ATLASSIAN_CLOUD_ID: $ATLASSIAN_CLOUD_ID
-      ATLASSIAN_INSTANCE: $ATLASSIAN_INSTANCE
 
 response:
   json_schema:

@@ -38,7 +38,7 @@ Requires GOOSE_MODE=auto to be effective for the session.
 Requires these environment variables to be exported:
     ATLASSIAN_AUTH      - Bearer token for Atlassian Rovo MCP
     ATLASSIAN_CLOUD_ID  - UUID of Atlassian Cloud tenant
-    ATLASSIAN_INSTANCE  - Atlassian site hostname (e.g., "company.atlassian.net")
+    ATLASSIAN_INSTANCE  - Atlassian site hostname (e.g., "company.atlassian.net"), used when displaying issue URLs
 """
 
 import argparse
@@ -49,6 +49,9 @@ import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
+RECIPES_DIR = SKILL_DIR / "recipes"
+MAPPER_RECIPE = RECIPES_DIR / "jira-issue-mapper.yaml"
+CREATOR_RECIPE = RECIPES_DIR / "create-jira-issue.yaml"
 REQUIRED_ENV_VARS = ["ATLASSIAN_AUTH", "ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"]
 
 
@@ -103,12 +106,12 @@ def run_recipe(recipe_path: Path, params: dict) -> dict:
         return json.loads(last_line)
     except json.JSONDecodeError as e:
         raise RuntimeError(
-            f"Could not parse JSON from {recipe_path.name}: {e}. "
+            f"Could not parse structured JSON output from {recipe_path.name}: {e}. "
             f"Last line was: {last_line!r}"
         )
 
 
-def main() -> int:
+def recipe_main() -> int:
     parser = argparse.ArgumentParser(
         description="Run a goose recipe with JSON parameters and return structured output"
     )
@@ -160,6 +163,10 @@ def main() -> int:
         }))
         return 1
 
+    # Auto-inject the cloud ID used by Rovo tool calls. Recipe prompts cannot
+    # read shell variables directly; they must receive declared parameters.
+    params.setdefault("atlassian_cloud_id", os.environ["ATLASSIAN_CLOUD_ID"])
+
     # Run the recipe.
     try:
         result = run_recipe(recipe_path, params)
@@ -177,4 +184,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(recipe_main())
