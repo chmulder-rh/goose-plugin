@@ -8,6 +8,11 @@ A [goose plugin](https://goose-docs.ai/docs/guides/context-engineering/plugins) 
 
 Create RHCLOUD Jira issues with deterministic field validation, mapping, and Jira API calls.
 
+**Authentication:**
+- The Jira recipes connect to Atlassian Rovo MCP over OAuth 2.1.
+- The first interactive authorization may open a browser; cached authorization can be reused later.
+- `GOOSE_MODE=auto` is required for headless nested recipe execution.
+
 **Architecture:**
 - **Layer 1:** Conversational skill (user Q&A, numbered options)
 - **Layer 2:** Python scripts (pure field validation & mapping)
@@ -29,7 +34,6 @@ Skill becomes available as `jira-issue-creator`.
 
 ```bash
 export GOOSE_MODE=auto
-export ATLASSIAN_AUTH="<Bearer token>"
 export ATLASSIAN_CLOUD_ID="<Atlassian tenant UUID>"
 export ATLASSIAN_INSTANCE="company.atlassian.net"
 ```

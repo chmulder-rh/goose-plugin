@@ -11,7 +11,6 @@ from conftest import SCRIPTS_DIR
 
 
 ALL_ENV_VARS = {
-    "ATLASSIAN_AUTH": "dummy-token",
     "ATLASSIAN_CLOUD_ID": "dummy-cloud-id",
     "ATLASSIAN_INSTANCE": "example.atlassian.net",
 }
@@ -36,17 +35,15 @@ class TestCheckRequiredEnvVars:
         assert set(missing) == set(pipeline_module.REQUIRED_ENV_VARS)
 
     def test_partially_set_returns_only_missing(self, pipeline_module, clean_atlassian_env):
-        clean_atlassian_env.setenv("ATLASSIAN_AUTH", "token")
         clean_atlassian_env.setenv("ATLASSIAN_CLOUD_ID", "cloud-id")
         missing = pipeline_module.check_required_env_vars()
         assert missing == ["ATLASSIAN_INSTANCE"]
 
     def test_blank_value_counts_as_missing(self, pipeline_module, clean_atlassian_env):
-        clean_atlassian_env.setenv("ATLASSIAN_AUTH", "   ")
-        clean_atlassian_env.setenv("ATLASSIAN_CLOUD_ID", "cloud-id")
+        clean_atlassian_env.setenv("ATLASSIAN_CLOUD_ID", "   ")
         clean_atlassian_env.setenv("ATLASSIAN_INSTANCE", "example.atlassian.net")
         missing = pipeline_module.check_required_env_vars()
-        assert missing == ["ATLASSIAN_AUTH"]
+        assert missing == ["ATLASSIAN_CLOUD_ID"]
 
 
 class TestRunRecipe:
@@ -120,7 +117,6 @@ class TestMainEnvGuard:
         payload = json.loads(capsys.readouterr().out)
         assert payload["stage"] == "env_error"
         assert payload["success"] is False
-        assert "ATLASSIAN_AUTH" in payload["error"]
         assert "ATLASSIAN_CLOUD_ID" in payload["error"]
         assert "ATLASSIAN_INSTANCE" in payload["error"]
 

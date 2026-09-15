@@ -144,7 +144,7 @@ SKILL.md (Layer 1)
 ## Environment Requirements
 
 - `GOOSE_MODE=auto` (required for nested `goose run` calls)
-- `ATLASSIAN_AUTH` (Bearer token for Rovo MCP)
+- OAuth 2.1 authorization for the Atlassian Rovo MCP extension
 - `ATLASSIAN_CLOUD_ID` (Atlassian tenant UUID)
 - `ATLASSIAN_INSTANCE` (Atlassian site hostname, e.g., company.atlassian.net)
 

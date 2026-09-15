@@ -28,7 +28,7 @@ Plus any fields the recipe's response.json_schema defines (e.g., issue_key, issu
 valid, mapped_summary, errors, etc.).
 
 If environment validation fails:
-    {"stage": "env_error", "success": false, "error": "Missing ATLASSIAN_AUTH, ..."}
+    {"stage": "env_error", "success": false, "error": "Missing ATLASSIAN_CLOUD_ID, ..."}
 
 If subprocess fails or JSON parsing fails:
     {"stage": "execution_error", "success": false, "error": "..."}
@@ -36,9 +36,12 @@ If subprocess fails or JSON parsing fails:
 Requires GOOSE_MODE=auto to be effective for the session.
 
 Requires these environment variables to be exported:
-    ATLASSIAN_AUTH      - Bearer token for Atlassian Rovo MCP
     ATLASSIAN_CLOUD_ID  - UUID of Atlassian Cloud tenant
     ATLASSIAN_INSTANCE  - Atlassian site hostname (e.g., "company.atlassian.net"), used when displaying issue URLs
+
+The Rovo MCP extension authenticates interactively with OAuth 2.1. Headless
+recipe execution still requires GOOSE_MODE=auto; OAuth authorization may open
+a browser when no valid session authorization is cached.
 """
 
 import argparse
@@ -52,7 +55,7 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 RECIPES_DIR = SKILL_DIR / "recipes"
 MAPPER_RECIPE = RECIPES_DIR / "jira-issue-mapper.yaml"
 CREATOR_RECIPE = RECIPES_DIR / "create-jira-issue.yaml"
-REQUIRED_ENV_VARS = ["ATLASSIAN_AUTH", "ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"]
+REQUIRED_ENV_VARS = ["ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"]
 
 
 def check_required_env_vars() -> list:
@@ -134,7 +137,8 @@ def recipe_main() -> int:
             "stage": "env_error",
             "success": False,
             "error": "Missing required environment variable(s): " + ", ".join(missing_env_vars) +
-                     ". Export ATLASSIAN_AUTH, ATLASSIAN_CLOUD_ID, and ATLASSIAN_INSTANCE before running.",
+                     ". Export ATLASSIAN_CLOUD_ID and ATLASSIAN_INSTANCE before running. "
+                     "The Rovo MCP extension will authenticate through OAuth 2.1.",
         }))
         return 1
 

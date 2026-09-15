@@ -39,7 +39,7 @@ def pipeline_module():
 
 @pytest.fixture()
 def clean_atlassian_env(monkeypatch):
-    """Ensure the three Atlassian env vars start unset for a test, regardless of the host env."""
-    for name in ("ATLASSIAN_AUTH", "ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"):
+    """Ensure the required Atlassian environment variables start unset."""
+    for name in ("ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"):
         monkeypatch.delenv(name, raising=False)
     return monkeypatch
