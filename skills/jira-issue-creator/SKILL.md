@@ -73,9 +73,23 @@ Returns:
 }
 ```
 
+If lookup fails, report the error and ask the user to retry with a different identifier, or choose "unassigned".
+
 ---
 
-## 3. Load questions
+## 3. Ask for title prefix
+
+Suggest the current working directory basename as the prefix:
+
+1. `[<cwd basename>]` (suggested)
+2. No prefix
+3. Other (custom prefix)
+
+Wait for user input before proceeding. After the user responds, echo back the prefix to confirm (e.g. "✅ Prefix: [frontend-components]").
+
+---
+
+## 4. Load questions
 
 ```shell
 python3 $SKILL_DIR/scripts/get_recipe_questions.py \
@@ -101,7 +115,7 @@ Returns:
 
 ---
 
-## 4. Use todo extension to ask questions one at a time
+## 5. Use todo extension to ask questions one at a time
 
 **Create a todo list** using the `todo` extension with one item per question:
 
@@ -114,15 +128,11 @@ Returns:
 5. **Echo back the answer** to confirm
 
 Only after the current question is answered should you ask the next one.
-Omit the summary question and use the inferred value.
+Omit questions for fields already resolved (summary, prefix, assignee).
 
 ---
 
-If lookup fails, report the error and ask the user to retry with a different identifier, or choose "unassigned".
-
----
-
-## 5. Validate and Map fields
+## 6. Validate and Map fields
 
 Once all questions are answered and assignee is resolved, call the validation and mapping script:
 
@@ -153,7 +163,7 @@ Returns:
 
 If validation fails, report errors and return. If valid, proceed to issue creation.
 
-## 6. Create Issue
+## 7. Create Issue
 
 ```shell
 python3 $SKILL_DIR/scripts/run_recipe.py \
@@ -174,7 +184,7 @@ Returns:
 
 ---
 
-## 7. Enrich Description
+## 8. Enrich Description
 
 Generate a comprehensive markdown description based on the summary and issue type:
 
@@ -214,7 +224,7 @@ Returns:
 
 ---
 
-## 8. Show Final Summary
+## 9. Show Final Summary
 
 Display the created ticket with all details:
 
