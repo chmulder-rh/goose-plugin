@@ -37,6 +37,7 @@ in the recipe, e.g.:
 
 import json
 import sys
+from pathlib import Path
 
 try:
     import yaml
@@ -72,7 +73,7 @@ def main() -> int:
         print(json.dumps({"error": "Usage: get_recipe_questions.py <path-to-recipe.yaml>"}))
         return 1
 
-    recipe_path = sys.argv[1]
+    recipe_path = Path(sys.argv[1]).expanduser()
     try:
         with open(recipe_path, "r") as f:
             data = yaml.safe_load(f)

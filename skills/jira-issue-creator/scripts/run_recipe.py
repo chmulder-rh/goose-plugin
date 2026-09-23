@@ -143,7 +143,7 @@ def recipe_main() -> int:
         return 1
 
     # Resolve recipe path (relative to skill dir or absolute).
-    recipe_path = Path(args.recipe)
+    recipe_path = Path(args.recipe).expanduser()
     if not recipe_path.is_absolute():
         recipe_path = SKILL_DIR / recipe_path
     if not recipe_path.exists():

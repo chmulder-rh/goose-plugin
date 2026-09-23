@@ -5,7 +5,7 @@ description: Create RHCLOUD Jira issues with validated fields and enriched descr
 
 # Workflow
 
----
+Prerequisite: Skill installed at `~/.config/goose/skills/jira-issue-creator/`.
 
 ## 1. Infer ticket title
 
@@ -15,52 +15,15 @@ Infer from the skill prompt
 
 Default: `unassigned`
 
-If "assign to bot" then run:
+If assigned to `<identifier>` (email, username, etc.) then run:
 
 ```shell
-python3 $SKILL_DIR/scripts/run_recipe.py \
-  --recipe recipes/resolve-assignee.yaml \
-  --params '{"search_string": "712020:c6b31fa1-eaf5-4921-af5b-cb625f24bb1a" }'
-```
-
-Returns:
-
-```jsonc
-{
-  "success": <boolean>,           // true if lookup succeeded
-  "account_id": <string>,         // Jira account ID or "" on failure
-  "display_name": <string>,       // User's full name
-  "error": <string>               // Error message (empty if success)
-}
-```
-
-If "assign to me" then run:
-
-```shell
-USER_IDENTIFIER=git config get user.email
-python3 $SKILL_DIR/scripts/run_recipe.py \
-  --recipe recipes/resolve-assignee.yaml \
-  --params '{"search_string": "$USER_IDENTIFIER"}'
-```
-
-Returns:
-
-```jsonc
-{
-  "success": <boolean>,           // true if lookup succeeded
-  "account_id": <string>,         // Jira account ID or "" on failure
-  "display_name": <string>,       // User's full name
-  "error": <string>               // Error message (empty if success)
-}
-```
-
-If "assign to <identifier>" then run:
-
-```shell
-python3 $SKILL_DIR/scripts/run_recipe.py \
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
   --recipe recipes/resolve-assignee.yaml \
   --params '{"search_string": "<identifier>"}'
 ```
+
+If "assign to bot" then use `712020:c6b31fa1-eaf5-4921-af5b-cb625f24bb1a` as `<identifier>`.
 
 Returns:
 
@@ -92,8 +55,8 @@ Wait for user input before proceeding. After the user responds, echo back the pr
 ## 4. Load questions
 
 ```shell
-python3 $SKILL_DIR/scripts/get_recipe_questions.py \
-  $SKILL_DIR/recipes/jira-issue-mapper.yaml
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/get_recipe_questions.py \
+  ~/.config/goose/skills/jira-issue-creator/recipes/jira-issue-mapper.yaml
 ```
 
 Returns:
@@ -107,8 +70,6 @@ Returns:
         "description": <string>,    // question text
         "options": <array<string>|NULL>,    // list of choices or null for free text
         "default": <string|NULL>    // default value or null
-        
-
     }
 ]
 ```
@@ -137,7 +98,7 @@ Omit questions for fields already resolved (summary, prefix, assignee).
 Once all questions are answered and assignee is resolved, call the validation and mapping script:
 
 ```shell
-python3 $SKILL_DIR/scripts/validate_and_map_fields.py \
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/validate_and_map_fields.py \
   --summary <string> \
   --prefix <string> \
   --team <string> \
@@ -166,7 +127,7 @@ If validation fails, report errors and return. If valid, proceed to issue creati
 ## 7. Create Issue
 
 ```shell
-python3 $SKILL_DIR/scripts/run_recipe.py \
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
   --recipe recipes/create-jira-issue.yaml \
   --params '{"mapped_summary": <string>, "issue_type": <string>, "team_field_value": <uuid>, "activity_type_field_value": <object>, "security_field_value": <object|null>, "assignee_account_id": <string>}'
 ```
@@ -208,7 +169,7 @@ Approve this description for CONSOLE-1234?
 If approved, update via recipe:
 
 ```shell
-python3 $SKILL_DIR/scripts/run_recipe.py \
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
   --recipe recipes/update-jira-issue-description.yaml \
   --params '{"issue_key": <string>, "description": <string>}'
 ```
@@ -240,10 +201,17 @@ Created RHCLOUD-1234
 
 ---
 
+## Troubleshooting
+
+- **First-time OAuth**: Headless recipe runs cannot display browser auth prompts. If authentication fails, run `goose session` once interactively to complete the Atlassian OAuth flow.
+- **Direct tool calls**: Never call `rovo__*` MCP tools directly from the top-level session. Always go through `run_recipe.py`.
+
+---
+
 ## Key Principles
 
 ✅ **No hardcoded options** — all questions and choices fetched from mapper recipe  
 ✅ **Todo-driven workflow** — enforces one question at a time  
 ✅ **Pure script validation** — all business logic in Python (not LLM)  
 ✅ **Deterministic mapping** — one source of truth for field values  
-✅ **Explicit delegation** — recipes called via shell, not soft delegation
+✅ **Explicit delegation** — recipes called via shell, not direct rovo tool calls

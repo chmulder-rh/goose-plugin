@@ -62,10 +62,6 @@ extensions:
     display_name: "Atlassian Rovo MCP Server"
     description: "MCP server for Atlassian Jira and Confluence integration"
     uri: https://mcp.atlassian.com/v2/mcp
-    scopes:
-      - read:jira:agent-interface
-      - write:jira:agent-interface
-      - search:jira:agent-interface
     timeout: 300
 
 response:
