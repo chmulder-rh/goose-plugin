@@ -105,6 +105,9 @@ def run_recipe(recipe_path: Path, params: dict) -> dict:
         )
 
     last_line = lines[-1]
+    json_start = last_line.find('{')
+    if json_start != -1:
+        last_line = last_line[json_start:]
     try:
         return json.loads(last_line)
     except json.JSONDecodeError as e:
