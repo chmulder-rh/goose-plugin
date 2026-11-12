@@ -57,6 +57,17 @@ MAPPER_RECIPE = RECIPES_DIR / "jira-issue-mapper.yaml"
 CREATOR_RECIPE = RECIPES_DIR / "create-jira-issue.yaml"
 REQUIRED_ENV_VARS = ["ATLASSIAN_CLOUD_ID", "ATLASSIAN_INSTANCE"]
 
+# Wall-clock budget for one `goose run`. Working runs take 15-60s; anything
+# longer is a hang (historically: OAuth credentials unreadable from the OS
+# keyring, or goose waiting on a headless browser-auth callback).
+SUBPROCESS_TIMEOUT_SECS = 180
+
+# If cached Atlassian OAuth credentials are missing, goose falls back to an
+# interactive browser flow that waits on a local callback for 300s by
+# default — silent in headless mode. Shorten it so we get a fast, visible
+# failure instead. Override by exporting the variable yourself.
+GOOSE_OAUTH_CALLBACK_TIMEOUT_SECS = "15"
+
 
 def check_required_env_vars() -> list:
     """Return a list of required env var names that are missing or empty."""
@@ -75,21 +86,49 @@ def run_recipe(recipe_path: Path, params: dict) -> dict:
         Dictionary parsed from the recipe's final JSON output line.
     
     Raises:
-        RuntimeError: If subprocess fails, output is empty, or JSON parsing fails.
+        RuntimeError: If subprocess fails, times out, output is empty, or JSON
+            parsing fails. Timeout errors include the goose stderr tail so the
+            failure mode (e.g. Atlassian OAuth) is diagnosable.
     """
     # Build command: goose run --recipe <path> --params k1=v1 --params k2=v2 ... -q
     cmd = ["goose", "run", "--recipe", str(recipe_path), "-q"]
     for key, value in params.items():
-        # JSON-encode string values to escape special characters (newlines, quotes, colons, etc.)
-        # This prevents YAML parsing errors when the value is substituted into the recipe prompt.
-        # Example: description="text\nwith\nlines" becomes description="\"text\\nwith\\nlines\""
-        encoded_value = json.dumps(value) if isinstance(value, str) else value
-        cmd += ["--params", f"{key}={encoded_value}"]
+        # Drop null/empty values entirely. Passing them literally (e.g.
+        # security_field_value=None) makes the string "None" truthy in the
+        # recipe's Jinja conditional, wrongly rendering `"security": None`.
+        # Dropping them lets the recipe default ("" — falsy) take over.
+        # A required param that is null/empty here makes goose exit with a
+        # clear MissingParams error rather than prompting.
+        if value is None or value == "":
+            continue
+        # JSON-encode every value (strings, dicts, lists, bools, numbers):
+        # escapes special characters in strings and renders dicts as valid
+        # JSON (double quotes) instead of Python repr (single quotes).
+        cmd += ["--params", f"{key}={json.dumps(value)}"]
 
     # GOOSE_MODE=auto is required for nested `goose run` calls to succeed.
     env = {**os.environ, "GOOSE_MODE": "auto"}
+    env.setdefault("GOOSE_OAUTH_CALLBACK_TIMEOUT_SECONDS", GOOSE_OAUTH_CALLBACK_TIMEOUT_SECS)
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
+    # Leave an evidence trail: what ran, with which timeout.
+    print(f"[run_recipe] {recipe_path.name} timeout={SUBPROCESS_TIMEOUT_SECS}s", file=sys.stderr)
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT_SECS, env=env
+        )
+    except subprocess.TimeoutExpired as e:
+        # e.stderr holds the goose output captured before the kill — this is
+        # the evidence that was previously discarded (e.g. the Atlassian
+        # "authorize manually at: https://..." URL or the keyring blocker).
+        stderr_tail = (e.stderr or "")[-1500:] if isinstance(e.stderr, str) else ""
+        raise RuntimeError(
+            f"goose run timed out after {SUBPROCESS_TIMEOUT_SECS}s for {recipe_path.name}. "
+            f"Likely cause: Atlassian OAuth credentials unreadable (OS keyring locked, "
+            f"e.g. KeePassXC) or a headless browser-auth wait. Fix: unlock the keyring / "
+            f"run 'goose session' once interactively to refresh the rovo OAuth grant. "
+            f"stderr tail: {stderr_tail.strip() or '(empty)'}"
+        )
 
     if result.returncode != 0:
         raise RuntimeError(
