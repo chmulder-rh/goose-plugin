@@ -1,0 +1,56 @@
+version: "1.0.0"
+title: "Jira Issue Getter"
+description: "Fetches a RHCLOUD Jira issue's summary, issue type and parent via getJiraIssue MCP. Uses ATLASSIAN_CLOUD_ID for cloudId."
+
+parameters:
+  - key: issue_key
+    input_type: string
+    requirement: required
+    description: "Jira issue key (e.g., RHCLOUD-1234)"
+
+  - key: atlassian_cloud_id
+    input_type: string
+    requirement: required
+    description: "Atlassian Cloud site ID (UUID)"
+
+prompt: |
+  rovo__getJiraIssue(
+    cloudId={{ atlassian_cloud_id }},
+    issueIdOrKey={{ issue_key }},
+    fields=["summary", "issuetype", "parent"]
+  )
+  // Report result via response.json_schema: {success, summary, issue_type, parent_key, error}
+
+extensions:
+  - type: streamable_http
+    name: rovo
+    display_name: "Atlassian Rovo MCP Server"
+    description: "MCP server for Atlassian Jira and Confluence integration"
+    uri: https://mcp.atlassian.com/v2/mcp
+    timeout: 300
+
+response:
+  json_schema:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "True if the issue was found"
+      summary:
+        type: string
+        description: "The issue's summary; empty string on failure"
+      issue_type:
+        type: string
+        description: "The issue's type name (e.g., 'Epic'); empty string on failure"
+      parent_key:
+        type: string
+        description: "Key of the issue's parent (e.g., 'RHCLOUD-100'); empty string if none or on failure"
+      error:
+        type: string
+        description: "Description of the failure; empty string on success"
+    required:
+      - success
+      - summary
+      - issue_type
+      - parent_key
+      - error

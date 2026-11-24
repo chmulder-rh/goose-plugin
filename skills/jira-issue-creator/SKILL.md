@@ -89,7 +89,7 @@ Returns:
 5. **Echo back the answer** to confirm
 
 Only after the current question is answered should you ask the next one.
-Omit questions for fields already resolved (summary, prefix, assignee).
+Omit questions for fields already resolved (summary, prefix, assignee, epic_key). Never ask for epic_key interactively — it comes from the prompt only; if absent, the epic steps are skipped entirely.
 
 ---
 
@@ -104,8 +104,12 @@ python3 ~/.config/goose/skills/jira-issue-creator/scripts/validate_and_map_field
   --team <string> \
   --issue-type <string> \
   --activity-type <string> \
-  --assignee-account-id <string>
+  --assignee-account-id <string> \
+  --epic-key <string>
 ```
+
+`<epic-key>` is the parent epic key extracted from the prompt (or `""`). It must
+match `RHCLOUD-<number>`; anything else fails validation.
 
 Returns:
 
@@ -118,19 +122,69 @@ Returns:
   "team_field_value": <uuid>,
   "activity_type_field_value": <object>,
   "security_field_value": <object|null>,
-  "assignee_account_id": <string>
+  "assignee_account_id": <string>,
+  "epic_key": <string>            // validated parent epic key (RHCLOUD-<number>) or ""
 }
 ```
 
 If validation fails, report errors and return. If valid, proceed to issue creation.
 
-## 7. Create Issue
+---
+
+## 7. Verify Epic (optional)
+
+Default: skip this step (when `epic_key` is empty).
+
+If the prompt mentions an epic ("epic" or "Epic") together with an issue key
+matching `RHCLOUD-\d+`, that key is the parent epic. If "epic" is mentioned but
+no key is found, ask the user for the epic key. A `RHCLOUD-\d+` key without the
+word "epic" is not an epic reference — do not associate.
+
+Verify the epic exists before creating the ticket:
+
+```shell
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
+  --recipe recipes/get-jira-issue.yaml \
+  --params '{"issue_key": "<epic_key>"}'
+```
+
+Returns:
+
+```jsonc
+{
+  "success": <boolean>,
+  "summary": <string>,            // epic title, "" on failure
+  "issue_type": <string>,         // e.g. "Epic", "" on failure
+  "parent_key": <string>,         // the issue's own parent, "" if none
+  "error": <string>               // error message (empty if success)
+}
+```
+
+If the lookup fails, report the error and ask the user to retry with a
+different key or skip epic association (set `epic_key` to `""`).
+
+If the lookup succeeds, confirm with the user (show the issue type as-is — if
+it is not "Epic", say so and let the user decide):
+
+```
+Associate the new ticket with RHCLOUD-53736 "Retire NachoBot GPG signing" (Epic)?
+
+[1] Yes, associate
+[2] No, skip epic association
+```
+
+---
+
+## 8. Create Issue
 
 ```shell
 python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
   --recipe recipes/create-jira-issue.yaml \
-  --params '{"mapped_summary": <string>, "issue_type": <string>, "team_field_value": <uuid>, "activity_type_field_value": <object>, "security_field_value": <object|null>, "assignee_account_id": <string>}'
+  --params '{"mapped_summary": <string>, "issue_type": <string>, "team_field_value": <uuid>, "activity_type_field_value": <object>, "security_field_value": <object|null>, "assignee_account_id": <string>, "epic_key": <string>}'
 ```
+
+Pass `epic_key` only when the user confirmed the epic in step 7; otherwise pass
+`""`.
 
 Returns:
 
@@ -143,9 +197,43 @@ Returns:
 }
 ```
 
+If creation fails, report the error and stop.
+
+### 8a. Confirm the parent was set
+
+Jira silently ignores `parent` on creation for some issue types (observed:
+accepted for Story, dropped for Bug). Always verify when `epic_key` is set:
+
+```shell
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
+  --recipe recipes/get-jira-issue.yaml \
+  --params '{"issue_key": "<issue_key>"}'
+```
+
+- `parent_key` equals `epic_key` → linked, continue.
+- `parent_key` is empty → repair it explicitly:
+
+```shell
+python3 ~/.config/goose/skills/jira-issue-creator/scripts/run_recipe.py \
+  --recipe recipes/associate-jira-issue-with-epic.yaml \
+  --params '{"issue_key": <string>, "epic_key": <string>}'
+```
+
+Returns:
+
+```jsonc
+{
+  "success": <boolean>,
+  "error": <string>               // error message (empty if success)
+}
+```
+
+If the repair fails, report the error and the ticket URL — the ticket exists and
+the parent can be set manually in Jira — then continue.
+
 ---
 
-## 8. Enrich Description
+## 9. Enrich Description
 
 Generate a comprehensive markdown description based on the summary and issue type:
 
@@ -153,6 +241,10 @@ Generate a comprehensive markdown description based on the summary and issue typ
 - **Scope:** Affected files, components, systems
 - **Acceptance Criteria:** Requirements and test coverage
 - **Additional Requirements:** Docs, accessibility, performance
+
+Write it in **Markdown** (`##` headings, `-` bullets, `` `code` ``). The recipe
+sends `contentFormat="markdown"`. Do **not** use Jira Wiki markup (`h2.`,
+`*bold*`) — it renders as literal text in the description.
 
 Display the proposed description and ask for approval:
 
@@ -185,7 +277,7 @@ Returns:
 
 ---
 
-## 9. Show Final Summary
+## 10. Show Final Summary
 
 Display the created ticket with all details:
 
@@ -196,6 +288,7 @@ Created RHCLOUD-1234
 ├── Team:          Console - UI
 ├── Assignee:      Charles Mulder (chmulder@redhat.com)
 ├── Activity Type: Quality / Stability / Reliability
+├── Parent Epic:   RHCLOUD-100 — Retire NachoBot GPG signing    (only when linked)
 └── View:          https://$ATLASSIAN_INSTANCE/browse/RHCLOUD-1234
 ```
 

@@ -77,10 +77,14 @@ class TestExtractQuestions:
             "issue_type",
             "activity_type",
             "assignee_account_id",
+            "epic_key",
         ]
         team_question = next(q for q in result if q["key"] == "team")
         assert team_question["input_type"] == "select"
         assert "Console - Framework" in team_question["options"]
+        epic_question = next(q for q in result if q["key"] == "epic_key")
+        assert epic_question["requirement"] == "optional"
+        assert epic_question["default"] == ""
 
 
 class TestMainCli:
@@ -143,4 +147,4 @@ class TestMainCli:
         assert result.returncode == 0
         payload = json.loads(result.stdout)
         assert isinstance(payload, list)
-        assert len(payload) == 6
+        assert len(payload) == 7

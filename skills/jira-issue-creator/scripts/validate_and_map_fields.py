@@ -16,7 +16,8 @@ Usage:
         --team "Console - UI" \
         --issue-type "Bug" \
         --activity-type "Quality / Stability / Reliability" \
-        --assignee-account-id "unassigned"
+        --assignee-account-id "unassigned" \
+        --epic-key "RHCLOUD-100"
 
 Prints a single JSON object to stdout:
     {
@@ -27,7 +28,8 @@ Prints a single JSON object to stdout:
       "team_field_value": "cc1c0d99-0567-45c8-bf77-8e6149d7ed83",
       "activity_type_field_value": {"value": "Quality / Stability / Reliability"},
       "security_field_value": null,
-      "assignee_account_id": "unassigned"
+      "assignee_account_id": "unassigned",
+      "epic_key": "RHCLOUD-100"
     }
 
 or, on validation failure:
@@ -42,12 +44,14 @@ or, on validation failure:
       "team_field_value": "",
       "activity_type_field_value": {},
       "security_field_value": null,
-      "assignee_account_id": ""
+      "assignee_account_id": "",
+      "epic_key": ""
     }
 """
 
 import argparse
 import json
+import re
 import sys
 
 
@@ -70,9 +74,14 @@ ALLOWED_ACTIVITY_TYPES = {
     "Product / Portfolio Work",
 }
 
+# Optional parent epic key. Format-checked here only; existence and issue
+# type are verified live via getJiraIssue in the association step.
+EPIC_KEY_PATTERN = re.compile(r"^RHCLOUD-\d+$")
+
 
 def validate_and_map(summary: str, prefix: str, team: str, issue_type: str,
-                     activity_type: str, assignee_account_id: str) -> dict:
+                     activity_type: str, assignee_account_id: str,
+                     epic_key: str = "") -> dict:
     """
     Validate all fields and map to Jira API values.
     
@@ -103,6 +112,10 @@ def validate_and_map(summary: str, prefix: str, team: str, issue_type: str,
     if not assignee_account_id or not assignee_account_id.strip():
         errors.append("assignee_account_id must not be empty (use 'unassigned' for no assignee)")
     
+    # Validate epic_key (optional; blocking when non-empty and malformed)
+    if epic_key and not EPIC_KEY_PATTERN.match(epic_key.strip()):
+        errors.append("epic_key must be a RHCLOUD issue key (e.g., RHCLOUD-1234) or empty")
+    
     # If any validation failed, return errors and empty mapped fields
     if errors:
         return {
@@ -114,6 +127,7 @@ def validate_and_map(summary: str, prefix: str, team: str, issue_type: str,
             "activity_type_field_value": {},
             "security_field_value": None,
             "assignee_account_id": "",
+            "epic_key": "",
         }
     
     # All valid—compute mappings
@@ -145,6 +159,7 @@ def validate_and_map(summary: str, prefix: str, team: str, issue_type: str,
         "activity_type_field_value": activity_type_field_value,
         "security_field_value": security_field_value,
         "assignee_account_id": assignee_account_id.strip(),
+        "epic_key": epic_key.strip(),
     }
 
 
@@ -158,6 +173,7 @@ def main() -> int:
     parser.add_argument("--issue-type", required=True, dest="issue_type")
     parser.add_argument("--activity-type", required=True, dest="activity_type")
     parser.add_argument("--assignee-account-id", required=True, dest="assignee_account_id")
+    parser.add_argument("--epic-key", default="", dest="epic_key")
     args = parser.parse_args()
     
     result = validate_and_map(
@@ -167,6 +183,7 @@ def main() -> int:
         issue_type=args.issue_type,
         activity_type=args.activity_type,
         assignee_account_id=args.assignee_account_id,
+        epic_key=args.epic_key,
     )
     
     print(json.dumps(result))

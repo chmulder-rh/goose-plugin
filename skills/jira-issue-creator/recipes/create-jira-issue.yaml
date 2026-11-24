@@ -34,6 +34,12 @@ parameters:
     requirement: required
     description: "Jira account ID or 'unassigned'"
 
+  - key: epic_key
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Parent epic issue key (e.g., RHCLOUD-1234); empty string if none"
+
   - key: atlassian_cloud_id
     input_type: string
     requirement: required
@@ -48,10 +54,9 @@ prompt: |
     assignee_account_id={{ assignee_account_id }},
     additional_fields={
       "customfield_10001": {{ team_field_value }},
-      "customfield_10464": {{ activity_type_field_value }},
-      {% if security_field_value %}
-      "security": {{ security_field_value }}
-      {% endif %}
+      "customfield_10464": {{ activity_type_field_value }}{% if security_field_value %},
+      "security": {{ security_field_value }}{% endif %}{% if epic_key %},
+      "parent": {"key": {{ epic_key }}}{% endif %}
     }
   )
   // Report result via response.json_schema: {success, issue_key, issue_url, error}

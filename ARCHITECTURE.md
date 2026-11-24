@@ -49,11 +49,23 @@ This separation ensures:
 **`create-jira-issue.yaml`**
 - Calls `createJiraIssue` MCP (extensions: [rovo])
 - Receives pre-validated, pre-mapped field values from Layer 2
+- Sets the parent epic inline when `epic_key` is non-empty
 - Returns JSON: `{success, issue_key, issue_url, error}`
+
+**`get-jira-issue.yaml`**
+- Calls `getJiraIssue` MCP (extensions: [rovo])
+- Reads an issue's summary, issue type and parent (epic verification, parent check)
+- Returns JSON: `{success, summary, issue_type, parent_key, error}`
+
+**`associate-jira-issue-with-epic.yaml`**
+- Calls `editJiraIssue` MCP (extensions: [rovo])
+- Sets `fields={"parent": {"key": <epic_key>}}` — used to repair the parent when
+  `createJiraIssue` ignored it for an issue type
+- Returns JSON: `{success, error}`
 
 **`update-jira-issue-description.yaml`**
 - Calls `editJiraIssue` MCP (extensions: [rovo])
-- Updates issue description after creation
+- Updates issue description after creation (Markdown via `contentFormat`)
 - Returns JSON: `{success, error}`
 
 ---
@@ -65,10 +77,18 @@ SKILL.md (Layer 1)
   ↓ collect user input
 validate_and_map_fields.py (Layer 2a)
   ↓ validation + mapping (pure Python, ~1ms)
+get-jira-issue.yaml (Layer 3)              ← optional: only when the prompt names an epic
+  ↓ MCP getJiraIssue call (verify epic exists, show title/type)
 run_recipe.py (Layer 2b)
   ↓ orchestrator
 create-jira-issue.yaml (Layer 3a)
-  ↓ MCP createJiraIssue call
+  ↓ MCP createJiraIssue call (parent epic inline when epic_key is set)
+run_recipe.py (Layer 2b)
+  ↓ orchestrator
+get-jira-issue.yaml (Layer 3)              ← optional: confirm parent_key was applied
+  ↓ MCP getJiraIssue call
+associate-jira-issue-with-epic.yaml        ← only if the parent was dropped
+  ↓ MCP editJiraIssue call (parent field)
 run_recipe.py (Layer 2b)
   ↓ orchestrator
 update-jira-issue-description.yaml (Layer 3b)

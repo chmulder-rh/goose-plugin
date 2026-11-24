@@ -1,0 +1,49 @@
+version: "1.0.0"
+title: "Jira Issue Epic Associator"
+description: "Sets a RHCLOUD Jira issue's parent epic via editJiraIssue MCP. Uses ATLASSIAN_CLOUD_ID for cloudId."
+
+parameters:
+  - key: issue_key
+    input_type: string
+    requirement: required
+    description: "Jira issue key of the created ticket (e.g., RHCLOUD-1234)"
+
+  - key: epic_key
+    input_type: string
+    requirement: required
+    description: "Parent epic issue key (e.g., RHCLOUD-100)"
+
+  - key: atlassian_cloud_id
+    input_type: string
+    requirement: required
+    description: "Atlassian Cloud site ID (UUID)"
+
+prompt: |
+  rovo__editJiraIssue(
+    cloudId={{ atlassian_cloud_id }},
+    issueIdOrKey={{ issue_key }},
+    fields={"parent": {"key": {{ epic_key }}}}
+  )
+  // Report result via response.json_schema: {success, error}
+
+extensions:
+  - type: streamable_http
+    name: rovo
+    display_name: "Atlassian Rovo MCP Server"
+    description: "MCP server for Atlassian Jira and Confluence integration"
+    uri: https://mcp.atlassian.com/v2/mcp
+    timeout: 300
+
+response:
+  json_schema:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "True if the issue was associated with the epic successfully"
+      error:
+        type: string
+        description: "Description of the failure; empty string on success"
+    required:
+      - success
+      - error

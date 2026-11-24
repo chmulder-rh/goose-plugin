@@ -52,6 +52,12 @@ parameters:
     requirement: required
     description: "Jira account ID of the assignee, or 'unassigned'. Must already be resolved by the caller."
 
+  - key: epic_key
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Parent epic issue key (e.g., RHCLOUD-1234); empty string if none"
+
 instructions: |
   You are a pure field-validation and mapping function. You have no tools and make no API calls.
 
@@ -65,6 +71,7 @@ instructions: |
                     "Associate Wellness & Development" | "Product / Portfolio Work"
   - summary:       must not be empty after trimming whitespace
   - assignee_account_id: any non-empty string, or the literal "unassigned"
+  - epic_key:      optional; if non-empty, must match RHCLOUD-<number> (a parent epic issue key)
 
   If ANY field is invalid, set "valid" to false, list every problem found in "errors"
   (one string per problem), and leave the mapped fields as empty strings / empty objects.
@@ -90,6 +97,9 @@ instructions: |
   ### assignee_account_id passthrough
   - Pass through "{{ assignee_account_id }}" unchanged (still "unassigned" if that was given).
 
+  ### epic_key passthrough
+  - Pass through "{{ epic_key }}" unchanged (empty string if not provided).
+
   Do not ask any questions. Do not call any tools. Compute the result and report it
   only via the structured response schema.
 
@@ -101,6 +111,7 @@ prompt: |
   - issue_type:           {{ issue_type }}
   - activity_type:        {{ activity_type }}
   - assignee_account_id:  {{ assignee_account_id }}
+  - epic_key:             {{ epic_key }}
 
 extensions: []
 
@@ -140,6 +151,9 @@ response:
       assignee_account_id:
         type: string
         description: "Passed-through assignee account ID, or 'unassigned'"
+      epic_key:
+        type: string
+        description: "Validated parent epic issue key, or empty string if none/invalid"
     required:
       - valid
       - errors
@@ -149,3 +163,4 @@ response:
       - activity_type_field_value
       - security_field_value
       - assignee_account_id
+      - epic_key
